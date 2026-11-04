@@ -1,0 +1,79 @@
+/* ==========================================
+   手机端专属样式 (mobile.css)
+   ========================================== */
+
+/* 手机竖屏默认排版 */
+@media screen and (max-width: 899px) {
+    #app-layer, #ui-layer { padding: 4vh 4vw; }
+    .header-data { width: 92vw; margin-bottom: 2vh; font-size: 12px; }
+    .back-btn { font-size: 14px; color: var(--text-color); cursor: pointer;}
+    .theme-toggle { height: 30px; padding: 0 10px; font-size: 11px; top: 4vh; right: 4vw; }
+
+    /* 主页大字排版 */
+    .title-group { position: absolute; bottom: 8vh; left: 4vw; width: 100vw; pointer-events: auto; cursor: pointer; text-align: left; }
+    .title, .title-shadow { 
+        font-size: min(31vw, 40vh); 
+        line-height: 0.7; 
+        letter-spacing: -2vw; 
+        font-weight: 900; 
+        transform: skewX(-10deg) scaleY(1.1); 
+        white-space: nowrap; 
+        display: inline-block; 
+    }
+    
+    /* 核心错位感：白字是空的，灰字在左下 */
+    .title { 
+        color: transparent; 
+        -webkit-text-stroke: 2px var(--text-color); /* 描边 */
+        position: relative; 
+        z-index: 2; 
+    }
+    .title-shadow { 
+        position: absolute; 
+        top: 8px; 
+        left: -15px; 
+        color: var(--accent-color); 
+        z-index: 1; 
+        -webkit-text-stroke: 0px transparent; 
+    }
+}
+
+/* 🚨 针对手机横屏的极限复刻 (完美还原图2) */
+@media screen and (max-height: 500px) {
+    /* 1. 顶部栏：防止 SYSTEM_MENU 被挡 */
+    #app-layer, #ui-layer { padding: 2vh 4vw; } 
+    .header-data { 
+        margin-bottom: 0; 
+        padding-bottom: 5px; 
+        font-size: 11px; 
+        width: 90vw; /* 给右侧按钮留出空间 */
+    }
+    .sys-time { font-size: 11px; padding: 0 5px; } 
+    
+    /* 把右上角按钮再往右靠一点，别挡住文字 */
+    .theme-toggle { height: 26px; font-size: 10px; padding: 0 8px; top: 2vh; right: 2vw; }
+
+    /* 2. 大字排版：像图2一样巨大、靠左下、错位 */
+    .title-group { 
+        top: auto !important; /* 取消居中 */
+        bottom: 2vh; 
+        left: 2vw; 
+        width: 100vw;
+        text-align: left; 
+    }
+    
+    .title, .title-shadow { 
+        font-size: 42vh; /* 字号极大，撑满整个高度 */
+        line-height: 0.8;
+        letter-spacing: -1vw; 
+    }
+    
+    /* 图2精髓：白色空心字向右延伸，灰色实心字错开在左 */
+    .title { 
+        -webkit-text-stroke: 2px var(--text-color); 
+    }
+    .title-shadow { 
+        top: 0.05em; 
+        left: -12vw; /* 故意错位很大的距离 */
+    }
+}
