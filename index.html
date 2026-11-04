@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>邪·冥莫比·乌斯 | 个人主页</title>
+    
+    <!-- 严格引入三个 CSS -->
+    <link rel="stylesheet" href="css/xzc.css">
+    <link rel="stylesheet" href="css/pc.css">
+    <link rel="stylesheet" href="css/mobile.css">
+
+    <style>
+        /* 主页专属排版（竖屏和电脑默认参数） */
+        .title-group { position: absolute; opacity: 0.95; }
+        .title, .title-shadow { transform: skewX(-12deg); font-weight: 900; white-space: nowrap; display: inline-block; }
+        .title { color: transparent; -webkit-text-stroke: 3px var(--text-color); transition: all 0.4s; position: relative; z-index: 2; }
+        .title-shadow { position: absolute; color: var(--accent-color); z-index: 1; opacity: 0.5;}
+
+        /* 手机竖屏默认大字 */
+        @media screen and (max-width: 899px) {
+            .title-group { bottom: 8vh; left: 5vw; }
+            .title, .title-shadow { font-size: 26vw; line-height: 0.7; letter-spacing: -1vw; }
+            .title-shadow { top: 2vw; left: -1.5vw; }
+        }
+
+        /* 电脑端大字 */
+        @media screen and (min-width: 900px) {
+            .title-group { left: 50%; transform: translateX(-50%); bottom: 5vh; text-align: center; width: 100%; }
+            .title, .title-shadow { font-size: 22vw; letter-spacing: -0.5vw; }
+            .title-shadow { top: 15px; left: -25px; }
+        }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" id="theme-btn" onclick="toggleTheme()">[ REVERSE ]</button>
+
+    <div class="bg-layer">
+        <div class="block-wedge"></div>
+        <div class="block-grey"></div>
+        <div class="line-rule"></div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="header-data">
+            <span>VISITOR: <span class="visitor-name">xiemi</span></span>
+            <span id="time-display">TIME: --</span>
+            <span class="menu-trigger" onclick="window.location.href='min.html'">[ SYSTEM_MENU ]</span>
+        </div>
+
+        <div class="title-group" onclick="window.location.href='iximin.html'">
+            <div class="title-shadow">XIEMI</div>
+            <div class="title">XIEMI</div>
+        </div>
+    </div>
+
+    <canvas id="fx-canvas"></canvas>
+
+    <script>
+        if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); }
+        function toggleTheme() { document.body.classList.toggle('light-mode'); localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); }
+        function updateTime() { const now = new Date(); document.getElementById('time-display').innerText = `TIME: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`; }
+        updateTime(); setInterval(updateTime, 1000);
+
+        // 拖尾特效 (所有页面通用逻辑)
+        const canvas = document.getElementById('fx-canvas'), ctx = canvas.getContext('2d');
+        let particles = [], lastMouse = { x: 0, y: 0 };
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        window.addEventListener('mousemove', (e) => {
+            let dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
+            let speed = Math.sqrt(dx * dx + dy * dy); lastMouse = { x: e.clientX, y: e.clientY };
+            if (Math.random() > speed * 0.05 && speed < 5) return; 
+            particles.push({ x: e.clientX, y: e.clientY, vx: dx * 0.5, vy: dy * 0.5, size: Math.random() * 3 + 1, life: 1, type: Math.random() > 0.8 ? 'grey' : 'auto' });
+        });
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let isLight = document.body.classList.contains('light-mode');
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+                ctx.lineWidth = p.size;
+                ctx.strokeStyle = p.type === 'grey' ? `rgba(150,150,150,${p.life})` : (isLight ? `rgba(5,5,5,${p.life})` : `rgba(255,255,255,${p.life})`);
+                ctx.stroke();
+            }
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>

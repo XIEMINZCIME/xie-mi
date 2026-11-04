@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>404 | 维度丢失</title>
+    <style>
+        /* 全局基础 */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        :root { --bg-color: #050505; --text-color: #FFFFFF; --accent-color: #888888; --wedge-color: #FFFFFF; --line-color: #222222; }
+        body { background: var(--bg-color); overflow: hidden; font-family: 'Arial Black', 'Microsoft YaHei', sans-serif; color: var(--text-color); height: 100vh; cursor: crosshair; }
+
+        /* 动态几何背景 */
+        .bg-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; overflow: hidden; }
+        .block-wedge { position: absolute; top: -20%; left: -20%; width: 90vw; height: 140vh; background: var(--wedge-color); clip-path: polygon(0 0, 100% 0, 55% 100%, 0% 100%); animation: slideWedge 8s infinite alternate cubic-bezier(0.76, 0, 0.24, 1); }
+        .block-grey { position: absolute; top: 15%; right: 5%; width: 25vw; height: 25vw; background: var(--accent-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); animation: rotateTriangle 6s infinite alternate ease-in-out; }
+        .line-rule { position: absolute; top: 50%; left: -10%; width: 120vw; height: 4px; background: var(--line-color); transform: rotate(-15deg); transform-origin: center; animation: lineGrow 4s infinite alternate; z-index: 3; }
+        @keyframes slideWedge { 0% { transform: translateX(-5%) skewX(-5deg); } 100% { transform: translateX(5%) skewX(5deg); } }
+        @keyframes rotateTriangle { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(20px) rotate(15deg); } }
+        @keyframes lineGrow { 0% { transform: rotate(-15deg) scaleX(0.8); } 100% { transform: rotate(-15deg) scaleX(1.1); } }
+
+        /* UI 层 */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; padding: 5vh 5vw; z-index: 10; display: flex; flex-direction: column; pointer-events: none; }
+        .header-data { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--text-color); padding-bottom: 1vh; width: 75vw; font-family: 'Courier New', Courier, monospace; z-index: 15; pointer-events: auto; }
+        .header-data span { font-size: 14px; letter-spacing: 1px; color: var(--accent-color); }
+        .header-data #time-display { color: var(--text-color); font-weight: bold;}
+        
+        .back-btn { color: var(--text-color); cursor: pointer; font-weight: bold; transition: all 0.2s; text-decoration: none; }
+        .back-btn:hover { color: var(--accent-color); transform: translateX(-5px); }
+
+        /* 404 核心大字 */
+        .title-group { position: absolute; bottom: 8vh; left: 5vw; opacity: 0.95; pointer-events: auto; }
+        .title, .title-shadow { font-size: 26vw; line-height: 0.7; letter-spacing: -1vw; transform: skewX(-12deg); font-weight: 900; }
+        .title { color: transparent; -webkit-text-stroke: 3px var(--text-color); position: relative; z-index: 2; }
+        .title-shadow { position: absolute; top: 2vw; left: -1.5vw; color: var(--accent-color); z-index: 1; opacity: 0.5;}
+
+        /* 错误提示小字 */
+        .error-msg { position: absolute; bottom: 8vh; right: 5vw; text-align: right; font-family: 'Courier New', monospace; z-index: 15; color: var(--accent-color); }
+        .error-msg h2 { font-size: 24px; color: var(--text-color); margin-bottom: 10px; font-family: 'Microsoft YaHei';}
+        .error-msg p { font-size: 14px; letter-spacing: 1px; }
+
+        /* 手机竖屏 */
+        @media screen and (max-width: 899px) {
+            .error-msg { bottom: 2vh; right: 5vw; }
+        }
+
+        /* 🚨 手机横屏神级补丁 */
+        @media screen and (max-height: 500px) {
+            #ui-layer { padding: 2vh 3vw !important; }
+            .header-data { width: 100%; padding-bottom: 5px; margin-bottom: 0; margin-top: 1vh; }
+            .header-data span { font-size: 11px; }
+            
+            .title-group { bottom: -2vh; left: 1vw; }
+            .title, .title-shadow { font-size: 28vw; line-height: 0.8; letter-spacing: -1.5vw; }
+            .title-shadow { top: 0.06em; left: -0.06em; }
+
+            .error-msg { bottom: 4vh; right: 4vw; }
+            .error-msg h2 { font-size: 16px; margin-bottom: 5px; }
+            .error-msg p { font-size: 10px; }
+        }
+
+        /* 电脑端 */
+        @media screen and (min-width: 900px) {
+            .header-data { width: 100%; max-width: 1200px; margin: 0 auto 3vh auto; }
+            .title-group { left: 50%; transform: translateX(-50%); bottom: 5vh; text-align: center; width: 100%; }
+            .title, .title-shadow { font-size: 22vw; letter-spacing: -0.5vw; }
+            .title-shadow { top: 15px; left: -25px; }
+            .error-msg { bottom: 15vh; right: 15vw; text-align: center;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-layer">
+        <div class="block-wedge"></div>
+        <div class="block-grey"></div>
+        <div class="line-rule"></div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="header-data">
+            <!-- 点击返回你的主页 -->
+            <a href="index.html" class="back-btn">[ < RETURN_TO_REALITY ]</a>
+            <span id="time-display">TIME: --</span>
+            <span>[ SYSTEM_ERROR ]</span>
+        </div>
+
+        <div class="title-group">
+            <div class="title-shadow">404</div>
+            <div class="title">404</div>
+        </div>
+
+        <div class="error-msg">
+            <h2>[ 维度迷失 ]</h2>
+            <p>DIMENSION NOT FOUND.</p>
+            <p>你试图观测的坐标已坍缩。</p>
+        </div>
+    </div>
+
+    <script>
+        // 实时时间逻辑
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time-display').innerText = `TIME: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        }
+        updateTime(); 
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

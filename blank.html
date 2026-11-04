@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BLANK_PAGE | 观测终端</title>
+    
+    <!-- 如果你上传了 css 文件夹，就保留这三行；如果是本地单文件测试，可以用下面 <style> 里的代码 -->
+    <link rel="stylesheet" href="css/xzc.css">
+    <link rel="stylesheet" href="css/pc.css">
+    <link rel="stylesheet" href="css/mobile.css">
+
+    <style>
+        /* 如果你没有引入外部 css，这段背景代码可以保证页面不是白板 */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        :root { --bg-color: #050505; --text-color: #FFFFFF; --accent-color: #888888; }
+        body.light-mode { --bg-color: #FFFFFF; --text-color: #050505; --accent-color: #555555; }
+        body { background: var(--bg-color); color: var(--text-color); font-family: 'Courier New', Courier, monospace; height: 100vh; overflow: hidden; transition: background 0.4s; }
+        
+        /* 顶部导航栏（复用之前的风格） */
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; padding: 5vh 5vw; z-index: 10; display: flex; flex-direction: column; }
+        .header-data { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid var(--text-color); padding-bottom: 1vh; width: 100%; z-index: 15; }
+        .header-data span { font-size: 14px; color: var(--accent-color); letter-spacing: 1px; }
+        
+        /* 返回按钮悬停效果 */
+        .back-btn { color: var(--text-color); cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        .back-btn:hover { color: var(--accent-color); transform: translateX(-5px); }
+
+        /* 中间空白区域 */
+        .blank-content { 
+            flex: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            color: var(--accent-color);
+            border: 1px dashed var(--accent-color); /* 给个虚线框，让你知道这里是内容区 */
+            margin-top: 3vh;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        /* 手机横屏压缩 */
+        @media screen and (max-height: 500px) {
+            #ui-layer { padding: 2vh 3vw; }
+            .header-data span { font-size: 11px; }
+            .blank-content { margin-top: 1vh; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <!-- 顶部导航 -->
+        <div class="header-data">
+            <!-- 点击返回主页 index.html 或 xiemi.html -->
+            <span class="back-btn" onclick="window.location.href='index.html'">[ < RETURN ]</span>
+            <span id="time-display">TIME: --</span>
+            <span>[ BLANK_MODULE ]</span>
+        </div>
+
+        <!-- 这里是你的画布，以后想加什么就写在这里 -->
+        <div class="blank-content">
+            <h2>[ 这里是空白页的预留区域 ]</h2>
+        </div>
+    </div>
+
+    <script>
+        // 保留时间刷新逻辑
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('time-display').innerText = `TIME: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        }
+        updateTime(); 
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>

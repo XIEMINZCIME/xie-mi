@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IXI_SYSTEM | 控制终端</title>
+    
+    <!-- 不引用任何外部 CSS，杜绝排版崩溃 -->
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        
+        :root { 
+            --bg-color: #050505; --text-color: #FFFFFF; --accent-color: #888888; 
+            --wedge-color: #FFFFFF; --line-color: #222222; 
+        }
+        body.light-mode { 
+            --bg-color: #FFFFFF; --text-color: #050505; --accent-color: #555555; 
+            --wedge-color: #050505; --line-color: #E0E0E0; 
+        }
+        
+        body { background: var(--bg-color); overflow: hidden; font-family: 'Arial Black', 'Microsoft YaHei', sans-serif; color: var(--text-color); height: 100vh; transition: background 0.4s; cursor: crosshair; }
+
+        /* 动态几何背景 */
+        .bg-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; overflow: hidden; }
+        .block-wedge { position: absolute; top: -20%; left: -20%; width: 90vw; height: 140vh; background: var(--wedge-color); clip-path: polygon(0 0, 100% 0, 55% 100%, 0% 100%); animation: slideWedge 8s infinite alternate; }
+        .block-grey { position: absolute; top: 15%; right: 5%; width: 25vw; height: 25vw; background: var(--accent-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); animation: rotateTriangle 6s infinite alternate; }
+        .line-rule { position: absolute; top: 50%; left: -10%; width: 120vw; height: 4px; background: var(--line-color); transform: rotate(-15deg); z-index: 3; }
+        @keyframes slideWedge { 0% { transform: translateX(-5%) skewX(-5deg); } 100% { transform: translateX(5%) skewX(5deg); } }
+        @keyframes rotateTriangle { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(20px) rotate(15deg); } }
+
+        /* ==========================================
+           布局：流式等比缩放
+           ========================================== */
+        #ui-layer { 
+            position: absolute; inset: 0; z-index: 10; padding: 4vh 4vw; 
+            display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; 
+        }
+        .content-box { width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: auto; }
+
+        /* 顶部栏 */
+        .header-data { 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--text-color); padding-bottom: 1vh; 
+            font-family: 'Courier New', monospace; margin-bottom: 2vh; width: 100%;
+        }
+        .header-data span { font-size: clamp(12px, 1.2vw, 18px); color: var(--accent-color); }
+        .header-data #time-display { color: var(--text-color); font-weight: bold; }
+        .menu-trigger { color: var(--text-color); cursor: pointer; font-weight: bold; text-decoration: none; }
+        
+        .theme-toggle { position: fixed; top: 4vh; right: 4vw; z-index: 100; width: clamp(80px, 8vw, 120px); height: clamp(30px, 4vh, 45px); background: var(--text-color); color: var(--bg-color); border: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); cursor: pointer; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-family: 'Courier New'; font-size: clamp(12px, 1.2vw, 16px); font-weight: 900; transition: 0.4s; }
+
+        /* ==========================================
+           控制台功能列表
+           ========================================== */
+        .menu-list { flex: 1; overflow-y: auto; padding-right: 10px; display: flex; flex-direction: column; gap: 15px; }
+        .menu-list::-webkit-scrollbar { width: 6px; }
+        .menu-list::-webkit-scrollbar-thumb { background: var(--accent-color); }
+
+        .nav-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(100, 100, 100, 0.05); border-left: 4px solid var(--text-color);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%);
+            padding: clamp(15px, 2vw, 30px); cursor: pointer; 
+            transition: all 0.2s cubic-bezier(0, 0, 0.2, 1); backdrop-filter: blur(5px);
+            font-family: 'Courier New', monospace; text-decoration: none; color: var(--text-color);
+        }
+        .nav-btn:hover {
+            background: var(--text-color); color: var(--bg-color);
+            transform: translateX(15px); border-left: 4px solid var(--accent-color);
+        }
+
+        .nav-title { font-size: clamp(16px, 1.8vw, 24px); font-weight: bold; letter-spacing: 2px; }
+        .nav-desc { font-size: clamp(11px, 1.2vw, 14px); color: var(--accent-color); margin-top: 5px; }
+        .nav-btn:hover .nav-desc { color: #444; }
+        
+        .nav-icon { font-size: clamp(24px, 2.5vw, 36px); font-family: 'Arial Black'; -webkit-text-stroke: 1px var(--text-color); color: transparent; }
+        .nav-btn:hover .nav-icon { -webkit-text-stroke: 1px var(--bg-color); }
+
+        /* ==========================================
+           音频播放器区域
+           ========================================== */
+        .player-box {
+            margin-top: 2vh; border: 1px solid var(--text-color); padding: clamp(15px, 2vw, 20px);
+            background: rgba(100, 100, 100, 0.1); display: flex; align-items: center; justify-content: space-between;
+            backdrop-filter: blur(5px);
+        }
+        .player-info { display: flex; flex-direction: column; gap: 5px; }
+        .player-info span { font-family: 'Courier New'; font-size: clamp(12px, 1.2vw, 16px); color: var(--text-color); }
+        
+        .player-controls { display: flex; gap: 10px; }
+        .ctrl-btn { 
+            background: var(--text-color); color: var(--bg-color); border: none; 
+            padding: clamp(5px, 1vw, 10px) clamp(10px, 2vw, 20px); 
+            font-family: 'Courier New'; font-weight: bold; cursor: pointer; 
+            font-size: clamp(12px, 1.2vw, 16px); transition: 0.2s;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+        }
+        .ctrl-btn:hover { background: var(--accent-color); color: #FFF; }
+
+        /* 手机横屏适配 */
+        @media screen and (max-height: 500px) {
+            #ui-layer { padding: 2vh 3vw; }
+            .content-box { width: calc(100vw - 120px); } 
+            .menu-list { gap: 10px; }
+        }
+        #fx-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" onclick="toggleTheme()">[ REVERSE ]</button>
+
+    <!-- 动态背景 -->
+    <div class="bg-layer">
+        <div class="block-wedge"></div>
+        <div class="block-grey"></div>
+        <div class="line-rule"></div>
+    </div>
+
+    <!-- UI 层 -->
+    <div id="ui-layer">
+        <div class="content-box">
+            <div class="header-data">
+                <span class="menu-trigger" onclick="window.location.href='index.html'">[ < RETURN_HOME ]</span>
+                <span id="time-display">TIME: --</span>
+                <span style="color: var(--accent-color);">[ SYSTEM_MENU ]</span>
+            </div>
+
+            <div class="menu-list">
+                <!-- 功能 1：文章档案库 -->
+                <a href="iximin.html" class="nav-btn">
+                    <div>
+                        <div class="nav-title">ARCHIVE_DATABASE</div>
+                        <div class="nav-desc">// 查阅维度档案与观测报告</div>
+                    </div>
+                    <div class="nav-icon">01</div>
+                </a>
+
+                <!-- 功能 2：外部链接矩阵 -->
+                <a href="links.html" class="nav-btn">
+                    <div>
+                        <div class="nav-title">EXTERNAL_LINKS</div>
+                        <div class="nav-desc">// 接入B站、GitHub、网易云等外部端口</div>
+                    </div>
+                    <div class="nav-icon">02</div>
+                </a>
+
+                <!-- 功能 3：关于我 (占位) -->
+                <a href="nzcime.html" class="nav-btn">
+                    <div>
+                        <div class="nav-title">ABOUT_XIEMINZCIME</div>
+                        <div class="nav-desc">// 组织理念与观测守则</div>
+                    </div>
+                    <div class="nav-icon">03</div>
+                </a>
+            </div>
+
+            <!-- 音频播放器 -->
+            <div class="player-box">
+                <div class="player-info">
+                    <span>BGM: Narvik Snow</span>
+                    <span style="font-size: 10px; color: var(--accent-color);">AUDIO_TRANSMISSION</span>
+                </div>
+                <div class="player-controls">
+                    <button class="ctrl-btn" onclick="playAudio()">PLAY</button>
+                    <button class="ctrl-btn" onclick="pauseAudio()">PAUSE</button>
+                </div>
+                <!-- 替换成你的 MP3 链接 -->
+                <audio id="bgm" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" loop></audio>
+            </div>
+
+        </div>
+    </div>
+
+    <canvas id="fx-canvas"></canvas>
+
+    <script>
+        // 音乐控制
+        function playAudio() { document.getElementById('bgm').play(); }
+        function pauseAudio() { document.getElementById('bgm').pause(); }
+
+        // 主题与时间
+        if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); }
+        function toggleTheme() { document.body.classList.toggle('light-mode'); localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); }
+        function updateTime() { const now = new Date(); document.getElementById('time-display').innerText = `TIME: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`; }
+        updateTime(); setInterval(updateTime, 1000);
+
+        // 鼠标拖尾特效 (保持统一)
+        const canvas = document.getElementById('fx-canvas'), ctx = canvas.getContext('2d');
+        let particles = [], lastMouse = { x: 0, y: 0 };
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        window.addEventListener('mousemove', (e) => {
+            let dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
+            let speed = Math.sqrt(dx * dx + dy * dy); lastMouse = { x: e.clientX, y: e.clientY };
+            if (Math.random() > speed * 0.05 && speed < 5) return; 
+            particles.push({ x: e.clientX, y: e.clientY, vx: dx * 0.5, vy: dy * 0.5, size: Math.random() * 3 + 1, life: 1, type: Math.random() > 0.8 ? 'grey' : 'auto' });
+        });
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let isLight = document.body.classList.contains('light-mode');
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+                ctx.lineWidth = p.size;
+                ctx.strokeStyle = p.type === 'grey' ? `rgba(150,150,150,${p.life})` : (isLight ? `rgba(5,5,5,${p.life})` : `rgba(255,255,255,${p.life})`);
+                ctx.stroke();
+            }
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>

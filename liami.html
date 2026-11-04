@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>LIAMI</title>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        
+        :root { 
+            --bg-color: #050505; --text-color: #FFFFFF; --accent-color: #888888; 
+            --wedge-color: #FFFFFF; --line-color: #222222; 
+        }
+        body.light-mode { 
+            --bg-color: #FFFFFF; --text-color: #050505; --accent-color: #555555; 
+            --wedge-color: #050505; --line-color: #E0E0E0; 
+        }
+        
+        body { background: var(--bg-color); overflow: hidden; font-family: 'Arial Black', 'Microsoft YaHei', sans-serif; color: var(--text-color); height: 100vh; transition: background 0.4s; cursor: crosshair; }
+
+        /* 动态几何背景 */
+        .bg-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; overflow: hidden; }
+        .block-wedge { position: absolute; top: -20%; left: -20%; width: 90vw; height: 140vh; background: var(--wedge-color); clip-path: polygon(0 0, 100% 0, 55% 100%, 0% 100%); animation: slideWedge 8s infinite alternate; }
+        .block-grey { position: absolute; top: 15%; right: 5%; width: 25vw; height: 25vw; background: var(--accent-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); animation: rotateTriangle 6s infinite alternate; }
+        .line-rule { position: absolute; top: 50%; left: -10%; width: 120vw; height: 4px; background: var(--line-color); transform: rotate(-15deg); z-index: 3; }
+        @keyframes slideWedge { 0% { transform: translateX(-5%) skewX(-5deg); } 100% { transform: translateX(5%) skewX(5deg); } }
+        @keyframes rotateTriangle { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(20px) rotate(15deg); } }
+
+        /* ==========================================
+           UI 布局：绝对靠左，限制最大宽度
+           ========================================== */
+        #ui-layer { 
+            position: absolute; inset: 0; z-index: 10; padding: 4vh 4vw; 
+            display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; 
+        }
+        
+        .content-box { 
+            width: 100%; 
+            max-width: 900px; 
+            height: 100%; 
+            display: flex; 
+            flex-direction: column; 
+            pointer-events: auto; 
+        }
+
+        /* 顶部栏 */
+        .header-data { 
+            display: flex; justify-content: space-between; align-items: center; 
+            border-bottom: 2px solid var(--text-color); padding-bottom: 1vh; 
+            font-family: 'Courier New', monospace; margin-bottom: 2vh; width: 100%;
+        }
+        .header-data span { font-size: clamp(12px, 1.2vw, 18px); color: var(--accent-color); }
+        .header-data #time-display { color: var(--text-color); font-weight: bold; }
+        .menu-trigger { color: var(--text-color); cursor: pointer; font-weight: bold; text-decoration: none; }
+        
+        .theme-toggle { position: fixed; top: 4vh; right: 4vw; z-index: 100; width: clamp(80px, 8vw, 120px); height: clamp(30px, 4vh, 45px); background: var(--text-color); color: var(--bg-color); border: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); cursor: pointer; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-family: 'Courier New'; font-size: clamp(12px, 1.2vw, 16px); font-weight: 900; transition: 0.4s; }
+
+        /* ==========================================
+           连冥终端主界面
+           ========================================== */
+        .terminal-card {
+            flex: 1;
+            background: rgba(100, 100, 100, 0.05);
+            border: 1px solid var(--text-color);
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 30px), calc(100% - 30px) 100%, 0 100%);
+            padding: clamp(15px, 2vw, 30px);
+            display: flex; flex-direction: column;
+            backdrop-filter: blur(10px);
+            margin-bottom: 20px;
+        }
+
+        .terminal-title {
+            font-size: clamp(20px, 2.5vw, 32px); font-weight: 900; letter-spacing: 2px;
+            color: transparent; -webkit-text-stroke: clamp(1px, 0.15vw, 2px) var(--text-color);
+            transform: skewX(-10deg); margin-bottom: 15px;
+        }
+
+        /* 连接控制区 */
+        .connect-area {
+            display: flex; gap: 10px; margin-bottom: 20px;
+        }
+        .input-url {
+            flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--accent-color);
+            color: var(--text-color); padding: 10px 15px; font-family: 'Courier New';
+            font-size: clamp(12px, 1.2vw, 16px); outline: none;
+        }
+        .input-url:focus { border-color: var(--text-color); }
+        
+        .btn {
+            background: var(--text-color); color: var(--bg-color); border: none;
+            padding: 10px 20px; font-family: 'Courier New'; font-weight: bold; cursor: pointer;
+            font-size: clamp(12px, 1.2vw, 16px); transition: 0.2s;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 5px), calc(100% - 5px) 100%, 0 100%);
+        }
+        .btn:hover { background: var(--accent-color); color: #FFF; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* 终端日志区 */
+        .terminal-log {
+            flex: 1; overflow-y: auto; background: rgba(0,0,0,0.5);
+            border: 1px dashed var(--accent-color); padding: 15px;
+            font-family: 'Courier New', monospace; font-size: clamp(12px, 1.2vw, 15px);
+            line-height: 1.6; margin-bottom: 15px;
+        }
+        .terminal-log::-webkit-scrollbar { width: 4px; }
+        .terminal-log::-webkit-scrollbar-thumb { background: var(--text-color); }
+        .log-line { margin-bottom: 5px; }
+        .log-time { color: var(--accent-color); margin-right: 10px; }
+        .log-sys { color: #5A7FDC; } /* 系统提示蓝 */
+        .log-send { color: var(--text-color); }
+        .log-recv { color: #3A5FBC; font-weight: bold; }
+        .log-err { color: #FF3333; }
+
+        /* 发送区 */
+        .send-area { display: flex; gap: 10px; }
+
+        /* 手机横屏适配 */
+        @media screen and (max-height: 500px) {
+            #ui-layer { padding: 2vh 3vw; }
+            .content-box { max-width: calc(100vw - 120px); } 
+            .connect-area { flex-direction: column; }
+            .input-url { width: 100%; }
+        }
+        #fx-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" onclick="toggleTheme()">[ REVERSE ]</button>
+
+    <div class="bg-layer">
+        <div class="block-wedge"></div>
+        <div class="block-grey"></div>
+        <div class="line-rule"></div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="content-box">
+            <div class="header-data">
+                <span class="menu-trigger" onclick="window.location.href='index.html'">[ < RETURN_HOME ]</span>
+                <span id="time-display">TIME: --</span>
+                <span style="color: var(--accent-color);">[ LIAMI_PROTOCOL ]</span>
+            </div>
+
+            <div class="terminal-card">
+                <div class="terminal-title">LIAMI // 连冥终端</div>
+                
+                <div class="connect-area">
+                    <input type="text" id="ws-url" class="input-url" value="wss://ws.postman-echo.com/raw" placeholder="输入自创维度通道...">
+                    <button id="btn-connect" class="btn" onclick="connectWS()">[ 连入 ]</button>
+                    <button id="btn-disconnect" class="btn" onclick="disconnectWS()" disabled>[ 断开 ]</button>
+                </div>
+
+                <div class="terminal-log" id="terminal-log">
+                    <div class="log-line"><span class="log-time">[SYS]</span><span class="log-sys">等待接入自创通道...</span></div>
+                </div>
+
+                <div class="send-area">
+                    <input type="text" id="msg-input" class="input-url" placeholder="输入要传输的XTO脉冲数据..." onkeypress="handleEnter(event)">
+                    <button id="btn-send" class="btn" onclick="sendMessage()" disabled>[ 发送 ]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="fx-canvas"></canvas>
+
+    <script>
+        // ==========================================
+        // 1. 连冥 WebSocket 逻辑
+        // ==========================================
+        let ws = null;
+        const logContainer = document.getElementById('terminal-log');
+        const btnConnect = document.getElementById('btn-connect');
+        const btnDisconnect = document.getElementById('btn-disconnect');
+        const btnSend = document.getElementById('btn-send');
+        const urlInput = document.getElementById('ws-url');
+        const msgInput = document.getElementById('msg-input');
+
+        // 获取当前时间格式
+        function getTimeStr() {
+            const now = new Date();
+            return `[${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}]`;
+        }
+
+        // 添加日志
+        function addLog(text, type = 'sys') {
+            const div = document.createElement('div');
+            div.className = 'log-line';
+            div.innerHTML = `<span class="log-time">${getTimeStr()}</span><span class="log-${type}">${text}</span>`;
+            logContainer.appendChild(div);
+            logContainer.scrollTop = logContainer.scrollHeight; // 自动滚动到底部
+        }
+
+        // 连接 WebSocket
+        function connectWS() {
+            const url = urlInput.value.trim();
+            if (!url) return addLog("通道地址不能为空。", "err");
+
+            addLog(`正在建立维度连接: ${url}`, "sys");
+            try {
+                ws = new WebSocket(url);
+
+                ws.onopen = () => {
+                    addLog("连冥成功！自创通道已建立。", "sys");
+                    btnConnect.disabled = true;
+                    btnDisconnect.disabled = false;
+                    btnSend.disabled = false;
+                    urlInput.disabled = true;
+                };
+
+                ws.onmessage = (event) => {
+                    addLog(`收到回传: ${event.data}`, "recv");
+                };
+
+                ws.onerror = (error) => {
+                    addLog("通道连接发生异常。", "err");
+                    console.error(error);
+                };
+
+                ws.onclose = () => {
+                    addLog("维度通道已断开。", "sys");
+                    resetButtons();
+                };
+            } catch (e) {
+                addLog(`连接失败: ${e.message}`, "err");
+            }
+        }
+
+        // 断开连接
+        function disconnectWS() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        // 重置按钮状态
+        function resetButtons() {
+            btnConnect.disabled = false;
+            btnDisconnect.disabled = true;
+            btnSend.disabled = true;
+            urlInput.disabled = false;
+            ws = null;
+        }
+
+        // 发送数据
+        function sendMessage() {
+            const msg = msgInput.value.trim();
+            if (!msg || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            // 包装成 XTO 协议 JSON（这里简单包装为字符串用于测试）
+            const packet = JSON.stringify({
+                xto_ver: "1.0",
+                sender: "xiemi",
+                action: "TEST_PULSE",
+                payload: msg
+            });
+
+            ws.send(packet);
+            addLog(`发出脉冲: ${msg}`, "send");
+            msgInput.value = ''; // 清空输入框
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendMessage();
+        }
+
+        // ==========================================
+        // 2. 通用逻辑 (主题、时间、拖尾)
+        // ==========================================
+        if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); }
+        function toggleTheme() { document.body.classList.toggle('light-mode'); localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); }
+        function updateTime() { const now = new Date(); document.getElementById('time-display').innerText = `TIME: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`; }
+        updateTime(); setInterval(updateTime, 1000);
+
+        // 拖尾
+        const canvas = document.getElementById('fx-canvas'), ctx = canvas.getContext('2d');
+        let particles = [], lastMouse = { x: 0, y: 0 };
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+        window.addEventListener('mousemove', (e) => {
+            let dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
+            let speed = Math.sqrt(dx * dx + dy * dy); lastMouse = { x: e.clientX, y: e.clientY };
+            if (Math.random() > speed * 0.05 && speed < 5) return; 
+            particles.push({ x: e.clientX, y: e.clientY, vx: dx * 0.5, vy: dy * 0.5, size: Math.random() * 3 + 1, life: 1, type: Math.random() > 0.8 ? 'grey' : 'auto' });
+        });
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let isLight = document.body.classList.contains('light-mode');
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+                ctx.lineWidth = p.size;
+                ctx.strokeStyle = p.type === 'grey' ? `rgba(150,150,150,${p.life})` : (isLight ? `rgba(5,5,5,${p.life})` : `rgba(255,255,255,${p.life})`);
+                ctx.stroke();
+            }
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+</html>
