@@ -3,18 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>IXI_ARCHIVE | 观测记录</title>
-    
-    <!-- 🚨 同样引入数据文件 -->
-    <script src="posts.js"></script>
-
+    <title>OBSERVATION | 观测记录</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         :root { --bg-color: #050505; --text-color: #FFFFFF; --accent-color: #888888; --wedge-color: #FFFFFF; --line-color: #222222; }
         body.light-mode { --bg-color: #FFFFFF; --text-color: #050505; --accent-color: #555555; --wedge-color: #050505; --line-color: #E0E0E0; }
-        body { background: var(--bg-color); overflow: hidden; font-family: 'Arial Black', 'Microsoft YaHei', sans-serif; color: var(--text-color); height: 100vh; transition: background 0.4s; cursor: crosshair; }
-
-        .bg-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; overflow: hidden; }
+        body { background: var(--bg-color); overflow: hidden; font-family: 'Arial Black', 'Microsoft YaHei', sans-serif; color: var(--text-color); height: 100vh; cursor: crosshair; }
+        .bg-layer { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
         .block-wedge { position: absolute; top: -20%; left: -20%; width: 90vw; height: 140vh; background: var(--wedge-color); clip-path: polygon(0 0, 100% 0, 55% 100%, 0% 100%); animation: slideWedge 8s infinite alternate; }
         .block-grey { position: absolute; top: 15%; right: 5%; width: 25vw; height: 25vw; background: var(--accent-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); animation: rotateTriangle 6s infinite alternate; }
         .line-rule { position: absolute; top: 50%; left: -10%; width: 120vw; height: 4px; background: var(--line-color); transform: rotate(-15deg); z-index: 3; }
@@ -22,83 +17,120 @@
         @keyframes rotateTriangle { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(20px) rotate(15deg); } }
 
         #ui-layer { position: absolute; inset: 0; z-index: 10; padding: 4vh 4vw; display: flex; flex-direction: column; align-items: flex-start; pointer-events: none; }
-        .content-box { width: 100%; height: 100%; display: flex; flex-direction: column; pointer-events: auto; }
+        .content-box { width: 100%; max-width: 900px; height: 100%; display: flex; flex-direction: column; pointer-events: auto; }
 
         .header-data { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--text-color); padding-bottom: 1vh; font-family: 'Courier New', monospace; margin-bottom: 2vh; width: 100%; }
         .header-data span { font-size: clamp(12px, 1.2vw, 18px); color: var(--accent-color); }
-        .header-data #time-display { color: var(--text-color); font-weight: bold; }
         .menu-trigger { color: var(--text-color); cursor: pointer; font-weight: bold; text-decoration: none; }
-        
-        .theme-toggle { position: fixed; top: 4vh; right: 4vw; z-index: 100; width: clamp(80px, 8vw, 120px); height: clamp(30px, 4vh, 45px); background: var(--text-color); color: var(--bg-color); border: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); cursor: pointer; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-family: 'Courier New'; font-size: clamp(12px, 1.2vw, 16px); font-weight: 900; transition: 0.4s; }
+        .theme-toggle { position: fixed; top: 4vh; right: 4vw; z-index: 100; width: clamp(80px, 8vw, 120px); height: clamp(30px, 4vh, 45px); background: var(--text-color); color: var(--bg-color); border: none; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%); cursor: pointer; font-family: 'Courier New'; font-size: clamp(12px, 1.2vw, 16px); font-weight: 900; display: flex; justify-content: center; align-items: center; transition: 0.4s;}
 
-        .post-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; margin-top: 1vh; width: 100%; }
-        .post-meta { font-family: 'Courier New', monospace; font-size: clamp(12px, 1.2vw, 16px); color: var(--accent-color); margin-bottom: 2vh; letter-spacing: 1px; }
+        .post-container { flex: 1; display: flex; flex-direction: column; overflow: hidden; width: 100%; }
+        .post-meta { font-family: 'Courier New', monospace; font-size: clamp(12px, 1.2vw, 16px); color: var(--accent-color); margin-bottom: 1vh; }
         .post-title { font-family: 'Microsoft YaHei', sans-serif; font-size: clamp(22px, 2.5vw, 36px); font-weight: 900; margin-bottom: 2vh; line-height: 1.3; }
-        .divider { width: 100%; height: 2px; background: var(--text-color); margin-bottom: 3vh; opacity: 0.5; }
+        .divider { width: 100%; height: 2px; background: var(--text-color); margin-bottom: 2vh; opacity: 0.5; }
         
-        .post-content { flex: 1; overflow-y: auto; font-family: 'Courier New', 'Microsoft YaHei', sans-serif; font-size: clamp(15px, 1.5vw, 20px); line-height: 2; letter-spacing: 1px; white-space: pre-wrap; padding-bottom: 50px; padding-right: 15px; }
+        .post-content { flex: 1; overflow-y: auto; font-family: 'Courier New', 'Microsoft YaHei', sans-serif; font-size: clamp(15px, 1.5vw, 20px); line-height: 2; letter-spacing: 1px; padding-bottom: 50px; padding-right: 15px; }
         .post-content::-webkit-scrollbar { width: 6px; }
         .post-content::-webkit-scrollbar-thumb { background: var(--text-color); }
 
         @media screen and (max-height: 500px) {
             #ui-layer { padding: 2vh 3vw; }
-            .content-box { width: calc(100vw - 120px); } 
+            .content-box { max-width: calc(100vw - 120px); } 
             .post-title { margin-bottom: 1vh; }
             .divider { margin-bottom: 1.5vh; }
-            .post-content { font-size: 14px; line-height: 1.6; }
         }
-        #fx-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; pointer-events: none; }
     </style>
 </head>
 <body>
-
     <button class="theme-toggle" onclick="toggleTheme()">[ REVERSE ]</button>
     <div class="bg-layer"><div class="block-wedge"></div><div class="block-grey"></div><div class="line-rule"></div></div>
 
     <div id="ui-layer">
         <div class="content-box">
             <div class="header-data">
-                <span class="menu-trigger" onclick="window.location.href='iximin.html'">[ < RETURN_TO_LIST ]</span>
-                <span id="time-display">TIME: --</span>
+                <a href="iximin.html" class="menu-trigger">[ < 返回书架 ]</a>
                 <span style="color: var(--accent-color);">[ OBSERVATION ]</span>
             </div>
 
             <div class="post-container">
-                <div class="post-meta" id="post-meta">DATE: -- // TAG: --</div>
+                <div class="post-meta" id="post-meta">加载中...</div>
                 <div class="post-title" id="post-title">正在解析档案...</div>
                 <div class="divider"></div>
-                <div class="post-content" id="post-content"></div>
+                <div class="post-content" id="post-content">正在从云端拉取内容...</div>
             </div>
         </div>
     </div>
 
-    <canvas id="fx-canvas"></canvas>
-
     <script>
-        function loadArticle() {
-            // 获取网址里的 id
-            const id = new URLSearchParams(window.location.search).get('id') || '01';
-            
-            // 直接在 posts.js 的数组里找
-            const article = allPosts.find(a => a.id === id);
+        // 🚨 替换成你的 data.json Raw 链接
+        const GITHUB_DATA_URL = 'https://raw.githubusercontent.com/XIEMINZCIME/xie-mi/main/data.json';
+        // 🚨 替换成你的 txt 文件夹 Raw 链接（注意最后有个斜杠 /）
+        const TXT_BASE_URL = 'https://raw.githubusercontent.com/XIEMINZCIME/xie-mi/main/txt/';
 
-            if (article) {
-                document.getElementById('post-title').innerText = article.title;
-                document.getElementById('post-meta').innerText = `DATE: ${article.date} // TAG: ${article.tag}`;
-                document.getElementById('post-content').innerText = article.content;
-            } else {
-                document.getElementById('post-title').innerText = "【档案缺失】";
-                document.getElementById('post-content').innerText = "未在 posts.js 中找到该 ID 对应的文章。";
+        async function loadArticle() {
+            // 获取 xtz 和 id 参数
+            const params = new URLSearchParams(window.location.search);
+            const xtz = params.get('xtz') || 'xie'; 
+            const id = params.get('id') || '00';
+            
+            // 🚨 自动拼接文件名：比如 xie_00.txt
+            const textFileName = `${xtz}_${id}.txt`; 
+            const textFileUrl = TXT_BASE_URL + textFileName;
+
+            try {
+                const metaRes = await fetch(GITHUB_DATA_URL);
+                const allPosts = await metaRes.json();
+                
+                // 查找匹配的文章
+                const article = allPosts.find(a => a.xtz === xtz && a.id === id);
+
+                if (article) {
+                    document.getElementById('post-title').innerText = `${article.chapter} - ${article.title}`;
+                    document.getElementById('post-meta').innerText = `SERIES: ${article.series}`;
+                }
+
+                // 计算上下话
+                const sameSeries = allPosts.filter(a => a.series === article.series).sort((a,b) => a.id.localeCompare(b.id));
+                const currentIndex = sameSeries.findIndex(a => a.id === id);
+
+                let navHtml = `<div style="display:flex; justify-content:space-between; margin-top: 50px; border-top: 1px solid var(--accent-color); padding-top: 20px; font-family: 'Courier New';">`;
+                
+                if (currentIndex > 0) {
+                    const prev = sameSeries[currentIndex - 1];
+                    navHtml += `<a href="ixi.html?xtz=${prev.xtz}&id=${prev.id}" style="color:var(--text-color); text-decoration:none;">[ < 上一话 ]</a>`;
+                } else {
+                    navHtml += `<span style="color:#555;">[ 已是第一话 ]</span>`;
+                }
+
+                if (currentIndex < sameSeries.length - 1) {
+                    const next = sameSeries[currentIndex + 1];
+                    navHtml += `<a href="ixi.html?xtz=${next.xtz}&id=${next.id}" style="color:var(--text-color); text-decoration:none;">[ 下一话 > ]</a>`;
+                } else {
+                    // 🚨 封锁机制：最后一话显示授权终止
+                    navHtml += `<span style="color:#D50000; font-weight: bold; text-shadow: 0 0 5px #D50000;">[ 授权终止 / 后续档案已被封存 ]</span>`;
+                }
+                navHtml += `</div>`;
+
+                const textRes = await fetch(textFileUrl);
+                const contentEl = document.getElementById('post-content');
+                
+                if (textRes.ok) {
+                    const longText = await textRes.text();
+                    contentEl.innerHTML = `<div style="white-space: pre-wrap; margin-bottom: 30px;">${longText}</div>`;
+                    contentEl.innerHTML += navHtml;
+                } else {
+                    contentEl.innerHTML = `<div style="color:#FF3333;">[ 找不到正文文件 txt/${textFileName} ]</div>`;
+                }
+
+            } catch (e) {
+                document.getElementById('post-content').innerText = "维度信号中断，无法读取数据。";
             }
         }
 
-        loadArticle();
-
-        // 基础逻辑
         if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); }
         function toggleTheme() { document.body.classList.toggle('light-mode'); localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark'); }
-        function updateTime() { const now = new Date(); document.getElementById('time-display').innerText = `TIME: ${now.getFullYear()}.${String(now.getMonth()+1).padStart(2,'0')}.${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`; }
-        updateTime(); setInterval(updateTime, 1000);
+
+        loadArticle();
     </script>
 </body>
 </html>
