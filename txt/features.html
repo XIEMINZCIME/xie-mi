@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IXI_SYSTEM | 功能仪表盘</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        
+        :root {
+            --bg-color: #050505;
+            --text-color: #FFFFFF;
+            --accent-color: #666666; 
+            --wedge-color: #FFFFFF;
+            --line-color: #333333;
+        }
+
+        body.light-mode {
+            --bg-color: #FFFFFF;
+            --text-color: #050505;
+            --accent-color: #999999;
+            --wedge-color: #050505;
+            --line-color: #CCCCCC;
+        }
+
+        body { background: var(--bg-color); overflow: hidden; font-family: 'Arial Black', 'Impact', 'Microsoft YaHei', sans-serif; color: var(--text-color); height: 100vh; transition: background 0.4s; cursor: crosshair; }
+
+        /* ==========================================
+           1. 动态几何背景
+           ========================================== */
+        .bg-layer { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; overflow: hidden; }
+        .block-wedge { position: absolute; top: -20%; left: -20%; width: 90vw; height: 140vh; background: var(--wedge-color); clip-path: polygon(0 0, 100% 0, 50% 100%, 0% 100%); animation: slideWedge 8s infinite alternate cubic-bezier(0.76, 0, 0.24, 1); transition: background 0.4s; }
+        .block-grey { position: absolute; top: 15%; right: 10%; width: 25vw; height: 25vw; background: var(--accent-color); clip-path: polygon(50% 0%, 0% 100%, 100% 100%); animation: rotateTriangle 6s infinite alternate ease-in-out; }
+        .line-rule { position: absolute; top: 45%; left: -10%; width: 120vw; height: 2px; background: var(--line-color); transform: rotate(-12deg); transform-origin: center; animation: lineGrow 4s infinite alternate; z-index: 3; transition: background 0.4s; }
+
+        @keyframes slideWedge { 0% { transform: translateX(-5%) skewX(-5deg); } 100% { transform: translateX(5%) skewX(5deg); } }
+        @keyframes rotateTriangle { 0% { transform: translateY(0) rotate(0deg); } 100% { transform: translateY(15px) rotate(15deg); } }
+        @keyframes lineGrow { 0% { transform: rotate(-12deg) scaleX(0.8); } 100% { transform: rotate(-12deg) scaleX(1.1); } }
+
+        /* ==========================================
+           2. UI 布局
+           ========================================== */
+        #app-layer { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; padding: 4vh 4vw; pointer-events: none;}
+        
+        .header-data { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--text-color); padding-bottom: 5px; width: 92vw; font-family: 'Courier New', Courier, monospace; z-index: 15; position: relative; margin-bottom: 2vh; pointer-events: auto; }
+        .back-btn { color: var(--text-color); cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s;}
+        .back-btn:hover { color: var(--accent-color); transform: translateX(-5px); }
+        .sys-time { font-size: 12px; color: var(--text-color); font-weight: bold; background: var(--bg-color); padding: 0 4px;}
+
+        /* 功能网格布局 */
+        .dashboard-grid {
+            flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            max-width: 800px; width: 100%; margin: 0 auto; overflow-y: auto;
+            pointer-events: auto; padding-right: 5px; padding-bottom: 50px;
+        }
+        .dashboard-grid::-webkit-scrollbar { width: 4px; }
+        .dashboard-grid::-webkit-scrollbar-thumb { background: var(--accent-color); }
+
+        .dash-card {
+            background: rgba(100, 100, 100, 0.05); border: 1px solid #333;
+            padding: 20px; display: flex; flex-direction: column; justify-content: center;
+            position: relative; overflow: hidden;
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+            transition: all 0.2s;
+        }
+        .dash-card:hover { border-color: var(--text-color); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
+
+        .card-label { font-family: 'Courier New', monospace; font-size: 12px; color: var(--accent-color); letter-spacing: 1px; margin-bottom: 10px; }
+        .card-value { font-family: 'Courier New', monospace; font-size: 28px; font-weight: bold; line-height: 1.2; }
+        .card-sub { font-family: 'Courier New', monospace; font-size: 14px; color: var(--accent-color); margin-top: 5px; }
+
+        .dash-card.full-width { grid-column: span 2; }
+
+        /* 搜索框 */
+        .search-input {
+            width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--text-color);
+            color: var(--text-color); font-family: 'Courier New', monospace; font-size: 20px;
+            padding: 10px 0; outline: none; margin-top: 10px;
+        }
+        .search-input::placeholder { color: var(--accent-color); }
+
+        /* 音乐控件 */
+        .music-controls { display: flex; gap: 10px; margin-top: 10px; }
+        .music-btn { background: var(--text-color); color: var(--bg-color); border: none; padding: 5px 15px; font-family: 'Courier New'; font-weight: bold; cursor: pointer; font-size: 12px; transition: 0.2s; }
+        .music-btn:hover { opacity: 0.8; }
+
+        /* 全局切换按钮 */
+        .theme-toggle { position: fixed; top: 4vh; right: 4vw; z-index: 100; height: 30px; padding: 0 10px; background: var(--text-color); color: var(--bg-color); border: none; cursor: pointer; pointer-events: auto; display: flex; justify-content: center; align-items: center; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 900; letter-spacing: 1px; transition: all 0.4s; white-space: nowrap; clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%); }
+
+        #fx-canvas { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 999; pointer-events: none; }
+    </style>
+</head>
+<body>
+
+    <button class="theme-toggle" onclick="toggleTheme()">[ REVERSE ]</button>
+
+    <div class="bg-layer">
+        <div class="block-wedge"></div>
+        <div class="block-grey"></div>
+        <div class="line-rule"></div>
+    </div>
+
+    <div id="app-layer">
+        <div class="header-data">
+            <span class="back-btn" onclick="window.location.href='xiemi.html'">[ < RETURN ]</span>
+            <span class="sys-time" id="sys-time">TIME: --</span>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- 时钟 -->
+            <div class="dash-card">
+                <div class="card-label">CURRENT_TIME</div>
+                <div class="card-value" id="clock-time">00:00:00</div>
+                <div class="card-sub" id="clock-date">----.--.--</div>
+            </div>
+
+            <!-- 心情 -->
+            <div class="dash-card">
+                <div class="card-label">MOOD_STATUS</div>
+                <div class="card-value" style="cursor:pointer;" onclick="changeMood()" id="mood-text">🔮 观测中</div>
+                <div class="card-sub">点击切换</div>
+            </div>
+
+            <!-- 天气 -->
+            <div class="dash-card full-width">
+                <div class="card-label">WEATHER_REPORT</div>
+                <div class="card-value" id="weather-temp">--°C</div>
+                <div class="card-sub" id="weather-desc">正在获取本地天气...</div>
+            </div>
+
+            <!-- 🚨 读取 mi.txt 的随机机密 -->
+            <div class="dash-card full-width">
+                <div class="card-label">INTERNAL_MI_FILE // 机密观测</div>
+                <div class="card-value" style="font-size: 18px; font-weight: normal; line-height: 1.5;" id="mi-text">正在解析 mi.txt ...</div>
+                <div class="card-sub" style="text-align: right;">—— 归档-XM</div>
+            </div>
+
+            <!-- 搜索 -->
+            <div class="dash-card full-width">
+                <div class="card-label">SEARCH_ARCHIVES</div>
+                <input type="text" class="search-input" placeholder="输入关键词并回车..." onkeypress="handleSearch(event)">
+            </div>
+
+            <!-- 音乐播放器 -->
+            <div class="dash-card full-width">
+                <div class="card-label">AUDIO_TRANSMISSION</div>
+                <div class="card-value" style="font-size: 16px;">Narvik Snow (Sample)</div>
+                <div class="music-controls">
+                    <button class="music-btn" onclick="document.getElementById('bgm').play()">PLAY</button>
+                    <button class="music-btn" onclick="document.getElementById('bgm').pause()">PAUSE</button>
+                </div>
+                <!-- 这里换成你自己的 mp3 链接 -->
+                <audio id="bgm" src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" loop></audio>
+            </div>
+        </div>
+    </div>
+
+    <canvas id="fx-canvas"></canvas>
+
+    <script>
+        // ==========================================
+        // 1. 时钟逻辑
+        // ==========================================
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            const y = now.getFullYear();
+            const mo = String(now.getMonth() + 1).padStart(2, '0');
+            const d = String(now.getDate()).padStart(2, '0');
+            
+            document.getElementById('clock-time').innerText = `${h}:${m}:${s}`;
+            document.getElementById('clock-date').innerText = `${y}.${mo}.${d}`;
+            document.getElementById('sys-time').innerText = `TIME: ${y}.${mo}.${d} ${h}:${m}:${s}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ==========================================
+        // 2. 心情切换
+        // ==========================================
+        const moods = ["🔮 观测中", "🌑 维度坍缩", "⚡ 数据溢出", "🌫️ 信号丢失", "🗡️ 异端觉醒"];
+        let moodIndex = 0;
+        function changeMood() {
+            moodIndex = (moodIndex + 1) % moods.length;
+            document.getElementById('mood-text').innerText = moods[moodIndex];
+        }
+
+        // ==========================================
+        // 3. 天气获取 (Open-Meteo)
+        // ==========================================
+        async function fetchWeather() {
+            try {
+                const ipRes = await fetch('https://ipapi.co/json/');
+                const ipData = await ipRes.json();
+                const lat = ipData.latitude || 39.9042;
+                const lon = ipData.longitude || 116.4074;
+                const city = ipData.city || "未知区域";
+
+                const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true`);
+                const weatherData = await weatherRes.json();
+                
+                const temp = weatherData.current_weather.temperature;
+                const code = weatherData.current_weather.weathercode;
+                let desc = "晴朗";
+                if (code >= 1 && code <= 3) desc = "多云";
+                if (code >= 45 && code <= 48) desc = "大雾";
+                if (code >= 51 && code <= 67) desc = "降雨";
+                if (code >= 71 && code <= 77) desc = "降雪";
+                if (code >= 80 && code <= 82) desc = "阵雨";
+                if (code >= 95) desc = "雷暴";
+
+                document.getElementById('weather-temp').innerText = `${temp}°C`;
+                document.getElementById('weather-desc').innerText = `${city} // ${desc}`;
+            } catch (error) {
+                document.getElementById('weather-temp').innerText = "ERR";
+                document.getElementById('weather-desc').innerText = "无法连接气象卫星";
+            }
+        }
+        fetchWeather();
+
+        // ==========================================
+        // 4. 读取 mi.txt 随机句子
+        // ==========================================
+        async function fetchRandomMi() {
+            try {
+                // 加时间戳防止浏览器缓存旧文件
+                const response = await fetch('./mi.txt?t=' + new Date().getTime());
+                if (!response.ok) throw new Error("文件不存在");
+                
+                const text = await response.text();
+                // 按换行分割，并过滤掉空行
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line !== '');
+                
+                if (lines.length > 0) {
+                    const randomIndex = Math.floor(Math.random() * lines.length);
+                    document.getElementById('mi-text').innerText = `“${lines[randomIndex]}”`;
+                } else {
+                    document.getElementById('mi-text').innerText = "“mi.txt 内容为空。”";
+                }
+            } catch (error) {
+                console.error("读取失败:", error);
+                document.getElementById('mi-text').innerText = "“致此人之冥，刻意无维。” (默认兜底)";
+            }
+        }
+        fetchRandomMi();
+
+        // ==========================================
+        // 5. 搜索功能
+        // ==========================================
+        function handleSearch(event) {
+            if (event.key === 'Enter') {
+                const keyword = event.target.value;
+                if (keyword) {
+                    window.open(`https://www.bing.com/search?q=${encodeURIComponent(keyword)}`, '_blank');
+                    event.target.value = ''; 
+                }
+            }
+        }
+
+        // ==========================================
+        // 6. 主题与特效
+        // ==========================================
+        if (localStorage.getItem('theme') === 'light') { document.body.classList.add('light-mode'); }
+        function toggleTheme() { 
+            document.body.classList.toggle('light-mode'); 
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+
+        const canvas = document.getElementById('fx-canvas'), ctx = canvas.getContext('2d');
+        let particles = [], lastMouse = { x: 0, y: 0 };
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        window.addEventListener('mousemove', (e) => {
+            let dx = e.clientX - lastMouse.x, dy = e.clientY - lastMouse.y;
+            let speed = Math.sqrt(dx * dx + dy * dy); lastMouse = { x: e.clientX, y: e.clientY };
+            if (Math.random() > speed * 0.05 && speed < 5) return; 
+            particles.push({ x: e.clientX, y: e.clientY, vx: dx * 0.5, vy: dy * 0.5, size: Math.random() * 3 + 1, life: 1, type: Math.random() > 0.8 ? 'grey' : 'auto' });
+        });
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            let isLight = document.body.classList.contains('light-mode');
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i]; p.x += p.vx; p.y += p.vy; p.life -= 0.04;
+                if (p.life <= 0) { particles.splice(i, 1); continue; }
+                ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 3, p.y - p.vy * 3);
+                ctx.lineWidth = p.size;
+                ctx.strokeStyle = p.type === 'grey' ? `rgba(100,100,100,${p.life})` : (isLight ? `rgba(5,5,5,${p.life})` : `rgba(255,255,255,${p.life})`);
+                ctx.stroke();
+            }
+            requestAnimationFrame(render);
+        }
+        render();
+    </script>
+</body>
+              </html>
